@@ -4,7 +4,7 @@ using nanoFramework.Networking;
 
 namespace KittyKamHost
 {
-    public static class Wifi
+    public static class WifiHelper
     {
         public static void Connect(string ssid, string password)
         {

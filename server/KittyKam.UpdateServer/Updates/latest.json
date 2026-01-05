@@ -1,0 +1,9 @@
+﻿{
+  "version": "1.0.1",
+  "downloadUrl": "https://your-server.com/api/update/download/1.0.1",
+  "sha256Hash": "abc123...",
+  "fileSize": 524288,
+  "releasedUtc": "2026-01-04T10:00:00Z",
+  "releaseNotes": "Bug fixes and performance improvements",
+  "isRequired": false
+}
