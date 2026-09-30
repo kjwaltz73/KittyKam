@@ -43,9 +43,16 @@ bool initCamera() {
   c.pin_xclk = 0; c.pin_pclk = 22; c.pin_vsync = 25; c.pin_href = 23;
   c.pin_sccb_sda = 26; c.pin_sccb_scl = 27; c.pin_pwdn = 32; c.pin_reset = -1;
   c.xclk_freq_hz = 20000000; c.pixel_format = PIXFORMAT_JPEG;
-  c.frame_size = FRAMESIZE_SVGA; c.jpeg_quality = 12; c.fb_count = 1;
+  c.frame_size = FRAMESIZE_UXGA; c.jpeg_quality = 12; c.fb_count = 1;
   c.fb_location = CAMERA_FB_IN_PSRAM; c.grab_mode = CAMERA_GRAB_LATEST;
-  return esp_camera_init(&c) == ESP_OK;
+  if (esp_camera_init(&c) != ESP_OK) return false;
+  sensor_t* s = esp_camera_sensor_get();
+  s->set_hmirror(s, 1);  // sensor image is mirrored relative to the room
+  s->set_whitebal(s, 1); s->set_awb_gain(s, 1);
+  s->set_exposure_ctrl(s, 1); s->set_aec2(s, 1); s->set_ae_level(s, 1);
+  s->set_gain_ctrl(s, 1); s->set_gainceiling(s, GAINCEILING_16X);
+  s->set_lenc(s, 1);
+  return true;
 }
 
 float readGrams() { return scale.get_units(5); }
@@ -73,6 +80,7 @@ int post(const String& path, const char* type, const uint8_t* body, size_t len) 
   connectWifi();
   WiFiClientSecure client; client.setInsecure();  // personal project; key travels in header over TLS
   HTTPClient http;
+  http.setTimeout(20000);
   http.begin(client, String(API_BASE) + path);
   http.addHeader("Content-Type", type);
   http.addHeader("x-functions-key", API_KEY);
@@ -104,9 +112,14 @@ void finishVisit() {
 }
 
 // Over-the-air updates: `pio run -e esp32cam-ota -t upload` from the PC on the same network.
+volatile bool otaBusy = false;  // photo uploads pause while an OTA transfer is in flight
+
 void startOta() {
   ArduinoOTA.setHostname("kittykam");
   ArduinoOTA.setPassword(OTA_PASS);
+  ArduinoOTA.onStart([]() { otaBusy = true; });
+  ArduinoOTA.onEnd([]() { otaBusy = false; });
+  ArduinoOTA.onError([](ota_error_t) { otaBusy = false; });
   ArduinoOTA.begin();
 }
 
@@ -137,7 +150,7 @@ void loop() {
   visitId = String((long long)time(nullptr));
   photoCount = 0;
   capturePhoto();
-  for (int i = 0; i < 600; i++) { ArduinoOTA.handle(); delay(50); }  // 30s, staying responsive to OTA
+  for (int i = 0; i < 600 || otaBusy; i++) { ArduinoOTA.handle(); delay(otaBusy ? 1 : 50); }  // 30s, staying responsive to OTA
   return;
 #endif
   bool motion = digitalRead(PIN_PIR) == HIGH;
