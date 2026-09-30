@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# KittyKam
+firmware/src/secrets.h
+firmware/.pio/
+server/local.settings.json
+server/.venv/
+__pycache__/
