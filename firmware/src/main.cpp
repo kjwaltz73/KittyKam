@@ -5,6 +5,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <time.h>
+#include <ArduinoOTA.h>
 #include "esp_camera.h"
 #include "HX711.h"
 #include "secrets.h"
@@ -63,6 +64,7 @@ float settledGrams() {
 
 void connectWifi() {
   if (WiFi.status() == WL_CONNECTED) return;
+  WiFi.setSleep(false);  // modem sleep drops packets during OTA and slows uploads
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   for (int i = 0; i < 40 && WiFi.status() != WL_CONNECTED; i++) delay(500);
 }
@@ -101,12 +103,20 @@ void finishVisit() {
   state = IDLE;
 }
 
+// Over-the-air updates: `pio run -e esp32cam-ota -t upload` from the PC on the same network.
+void startOta() {
+  ArduinoOTA.setHostname("kittykam");
+  ArduinoOTA.setPassword(OTA_PASS);
+  ArduinoOTA.begin();
+}
+
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_PIR, INPUT);
   if (!initCamera()) { Serial.println("camera init failed"); delay(3000); ESP.restart(); }
 #if TEST_MODE
   connectWifi();
+  startOta();
   Serial.printf("wifi: %s ip=%s\n", WiFi.status() == WL_CONNECTED ? "connected" : "FAILED", WiFi.localIP().toString().c_str());
   configTime(0, 0, "pool.ntp.org");
   while (time(nullptr) < 100000) delay(200);
@@ -116,16 +126,18 @@ void setup() {
   scale.set_scale(SCALE_FACTOR);
   scale.tare();
   connectWifi();
+  startOta();
   configTime(0, 0, "pool.ntp.org");
   baselineG = settledGrams();
 }
 
 void loop() {
+  ArduinoOTA.handle();
 #if TEST_MODE
   visitId = String((long long)time(nullptr));
   photoCount = 0;
   capturePhoto();
-  delay(30000);
+  for (int i = 0; i < 600; i++) { ArduinoOTA.handle(); delay(50); }  // 30s, staying responsive to OTA
   return;
 #endif
   bool motion = digitalRead(PIN_PIR) == HIGH;

@@ -22,6 +22,11 @@ server/     Azure Functions (C# isolated worker, .NET 10, consumption plan)
 Power the PIR and HX711 from 3.3V. Four half-bridge load cells combine into one full bridge
 (platform scale); see the HX711 module docs for the E+/E-/A+/A- wiring.
 
+## Updating the firmware
+First flash is over USB (`pio run -e esp32cam -t upload`). After that, updates go over WiFi:
+set env var `KK_OTA_PASS` to `OTA_PASS` from `secrets.h`, then `pio run -e esp32cam-ota -t upload`.
+The board's IP is in `platformio.ini`; reserve it in the router so it doesn't change.
+
 ## Calibration
 Set `SCALE_FACTOR` in `main.cpp`: put a known weight on the bowl platform, read the raw value
 printed with scale factor 1, and divide raw by grams.
