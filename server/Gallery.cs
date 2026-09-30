@@ -65,8 +65,10 @@ public partial class Gallery(BlobServiceClient blobs)
             document.querySelectorAll('[data-ts]').forEach(function(e){
               e.textContent=new Date(+e.dataset.ts*1000).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'});
             });
+            setInterval(function(){ if(window.scrollY<50) location.reload(); }, 30000);
             </script></body></html>
             """);
+        req.HttpContext.Response.Headers.CacheControl = "no-store";
         return new ContentResult { Content = sb.ToString(), ContentType = "text/html; charset=utf-8" };
     }
 
