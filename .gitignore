@@ -365,5 +365,6 @@ FodyWeavers.xsd
 firmware/src/secrets.h
 firmware/.pio/
 server/local.settings.json
-server/.venv/
+server/bin/
+server/obj/
 __pycache__/

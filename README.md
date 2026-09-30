@@ -9,7 +9,7 @@ posted to a small Azure Functions API (Blob for photos, Table for visits).
 
 ```
 firmware/   ESP32-CAM (PlatformIO / Arduino). Copy src/secrets.h.example -> src/secrets.h
-server/     Azure Functions (Python, consumption plan)
+server/     Azure Functions (C# isolated worker, .NET 10, consumption plan)
 ```
 
 ## Wiring (AI-Thinker ESP32-CAM)
