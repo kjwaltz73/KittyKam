@@ -10,6 +10,10 @@
 #include "secrets.h"
 
 // Free GPIOs on the AI-Thinker ESP32-CAM (camera uses the rest).
+// TEST_MODE 1: bench test with only the ESP32-CAM plugged in. Snaps a photo every 30s and
+// uploads it; ignores the PIR and scale (the HX711 library blocks forever if none is attached).
+#define TEST_MODE 1
+
 constexpr int PIN_PIR = 13;
 constexpr int PIN_HX_DT = 14;
 constexpr int PIN_HX_SCK = 15;
@@ -100,7 +104,14 @@ void finishVisit() {
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_PIR, INPUT);
-  if (!initCamera()) { Serial.println("camera init failed"); ESP.restart(); }
+  if (!initCamera()) { Serial.println("camera init failed"); delay(3000); ESP.restart(); }
+#if TEST_MODE
+  connectWifi();
+  Serial.printf("wifi: %s ip=%s\n", WiFi.status() == WL_CONNECTED ? "connected" : "FAILED", WiFi.localIP().toString().c_str());
+  configTime(0, 0, "pool.ntp.org");
+  while (time(nullptr) < 100000) delay(200);
+  return;
+#endif
   scale.begin(PIN_HX_DT, PIN_HX_SCK);
   scale.set_scale(SCALE_FACTOR);
   scale.tare();
@@ -110,6 +121,13 @@ void setup() {
 }
 
 void loop() {
+#if TEST_MODE
+  visitId = String((long long)time(nullptr));
+  photoCount = 0;
+  capturePhoto();
+  delay(30000);
+  return;
+#endif
   bool motion = digitalRead(PIN_PIR) == HIGH;
   uint32_t now = millis();
   if (state == IDLE && motion) {
